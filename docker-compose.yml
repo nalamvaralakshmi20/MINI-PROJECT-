@@ -1,0 +1,44 @@
+services:
+  oracle-db:
+    image: gvenzl/oracle-free:23-slim
+    environment:
+      ORACLE_PASSWORD: system
+      APP_USER: shoaib
+      APP_USER_PASSWORD: system
+    ports:
+      - "1522:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./db/init:/container-entrypoint-initdb.d:ro
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 300s
+    networks:
+      - fsd2-network
+
+  webapp:
+    build: .
+    ports:
+      - "8081:8080"
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: oracle-db
+      DB_PORT: "1521"
+      DB_SERVICE: FREEPDB1
+      DB_USER: shoaib
+      DB_PASSWORD: system
+    networks:
+      - fsd2-network
+
+volumes:
+  oracle-data:
+
+networks:
+  fsd2-network:
+    driver: bridge
